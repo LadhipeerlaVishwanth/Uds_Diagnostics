@@ -17,15 +17,15 @@ class GitManager:
 
     def load_credentials(self):
         if not os.path.exists(self.git_json):
-            raise FileNotFoundError(f"git_credentials_AK.json not found:\n{self.git_json}")
+            raise FileNotFoundError(f"git_credentials.json not found:\n{self.git_json}")
 
         with open(self.git_json, "r") as file:
             data = json.load(file)["git"]
 
         self.repo_url = data["repo_url"]
         self.branch = data.get("branch", "main")
-        self.username = data["username"]
-        self.token = data["token"]
+        #self.username = data["username"]
+        #self.token = data["token"]
 
         repo_name = os.path.basename(self.repo_url).replace(".git", "")
 
@@ -52,22 +52,15 @@ class GitManager:
 
         return sorted(files)
     
-    def get_authenticated_url(self):
-        return self.repo_url.replace(
-            "https://",
-            f"https://{self.username}:{self.token}@"
-        )
-        
         
     def clone_repository(self):
         if os.path.exists(self.repo_path):
             return
-        auth_url = self.get_authenticated_url()
         subprocess.run(
             [
                 "git",
                 "clone",
-                auth_url,
+                self.repo_url,
                 self.repo_path
             ],
             check=True
@@ -87,14 +80,10 @@ class GitManager:
         )
     
     def copy_reports(self):
-        source = os.path.join(self.base_dir, "output")
-        destination = os.path.join(self.repo_path, "output")
-        shutil.copytree(
-            source,
-            destination,
-            dirs_exist_ok=True
-        )
-            
+        source = os.path.join(self.base_dir,"output")
+        destination = os.path.join(self.repo_path,"output")
+        shutil.copytree(source,destination,dirs_exist_ok=True)
+        
     def git_add(self):
         subprocess.run(
             [
@@ -108,7 +97,7 @@ class GitManager:
         )
     
     def git_commit(self):
-        result = subprocess.run(
+        subprocess.run(
             [
                 "git",
                 "-C",
@@ -117,28 +106,12 @@ class GitManager:
                 "-m",
                 "Updated Reports"
             ],
-            capture_output=True,
-            text=True
+            check=False
         )
-        print(result.stdout)
-        print(result.stderr)
         
     
     def git_push(self):
-        auth_url = self.get_authenticated_url()
         subprocess.run(
-            [
-                "git",
-                "-C",
-                self.repo_path,
-                "remote",
-                "set-url",
-                "origin",
-                auth_url
-            ],
-            check=True
-        )
-        result = subprocess.run(
             [
                 "git",
                 "-C",
@@ -147,9 +120,17 @@ class GitManager:
                 "origin",
                 self.branch
             ],
-            capture_output=True,
-            text=True
+            check=True
         )
-        print(result.stdout)
-        print(result.stderr)
-        result.check_returncode()
+
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                self.repo_path,
+                "push",
+                "origin",
+                self.branch
+            ],
+            check=True
+        )

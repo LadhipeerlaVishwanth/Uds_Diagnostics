@@ -41,8 +41,6 @@ class SafeAsciiCodec(AsciiCodec):
 class UDSClient:
     def __init__(self, config):
         self.config = config
-        testcase_path = self.get_testcase_file_path()
-        load_testcases(testcase_path)
         can_cfg = config["uds"]["can"]
         isotp_cfg = config["uds"]["isotp"]
         timing_cfg = config["uds"]["timing"]
@@ -215,23 +213,14 @@ class UDSClient:
         self.can_logger.stop()
 
     def get_testcase_file_path(self):
-        support_dir = os.path.join(BASE_DIR, "supportfiles")
-        selected_file = os.path.join(BASE_DIR,"selected_testcase.txt")
-        # Git mode
-        if os.path.exists(selected_file):
-            with open(selected_file, "r") as f:
-                testcase_name = f.read().strip()
-            return os.path.join(support_dir,testcase_name)
-        # Manual mode
-        txt_files = [
-            f for f in os.listdir(support_dir)
-            if f.lower().endswith(".txt")
-            and f != "selected_testcase.txt"
-        ]
-
-        if len(txt_files) == 1:
-            return os.path.join(support_dir,txt_files[0])
-        raise FileNotFoundError("No selected_testcase.txt found and unable to determine testcase automatically.")
+         file_path = os.path.join(BASE_DIR,'supportfiles')
+         
+         for file in os.listdir(file_path):
+             if file.endswith('.txt'):
+                 return os.path.join(file_path, file)
+         if not os.path.exists(file_path):
+              raise FileNotFoundError(f"Testcase file not found: {file_path}")
+         return file_path
             
 
     def check_memory(self, oled):
@@ -375,8 +364,6 @@ class UDSClient:
                     continue
 
                 logging.info(f"[ECU Info] Processing {tc_id}")
-                oled.display_centered_text(f"Running\n\n{tc_id}")
-                oled.display_centered_text(f"{tc_id}\n{description}")
 
                 for step in steps:
                     logging.debug(f"[ECU Info] Step={step}")
@@ -498,7 +485,7 @@ class UDSClient:
         ecu_info_data = self.get_ecu_information(oled=None, logging_enable=False)
         testcase_file_path = self.get_testcase_file_path()
         base_name = os.path.splitext(os.path.basename(testcase_file_path))[0]
-        timestamp = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+        timestamp = datetime.now().strftime("%Y%m%d%_H%M%S")
         #self.start_logging(filename=f"{base_name}.asc")
         self.start_logging(filename=f"{base_name}_{timestamp}.asc")
 

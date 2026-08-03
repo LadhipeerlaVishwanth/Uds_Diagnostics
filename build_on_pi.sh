@@ -1,3 +1,4 @@
+#!/bin/bash
 
 set -e
 
@@ -22,15 +23,19 @@ sudo nano /boot/firmware/config.txt
 # ---Step 1 : Create Virtual env ---
 echo "[1/8] Creating Virtual env..."
 
-python3 -m venv venv 
-echo "Activating  venv..."
+python3 -m venv venv
+echo "Activating venv..."
 source venv/bin/activate
+
 echo "Changing directory to virtual env..."
-cd $PROJECT_DIR/venv
+cd "$PROJECT_DIR/venv"
 
 # --- Step 2: Check Python version ---
 echo "[2/8] Checking Python..."
-python3 --version || { echo "ERROR: python3 not found. Install it with: sudo apt install python3"; exit 1; }
+python3 --version || {
+    echo "ERROR: python3 not found. Install it with: sudo apt install python3"
+    exit 1
+}
 
 # --- Step 3: Install pip if missing ---
 echo "[3/8] Checking pip..."
@@ -39,15 +44,28 @@ python3 -m pip --version 2>/dev/null || {
     sudo apt-get install -y python3-pip
 }
 
-# --- Step 4 : Install pyinstaller if missing ---
-echo "[4/8] checking pyinstaller..."
-python3 -m pynstaller --version 2>/dev/null || {
-    echo "pyinsatller not found, installing..."
+# --- Step 4: Install PyInstaller if missing ---
+echo "[4/8] Checking PyInstaller..."
+python3 -m PyInstaller --version 2>/dev/null || {
+    echo "PyInstaller not found, installing..."
     sudo pip3 install pyinstaller --break-system-packages
 }
 
+# -------------------------------------------------------
+# Install required Linux build dependencies
+# -------------------------------------------------------
+echo "[4.5/8] Installing Linux build dependencies..."
+
+sudo apt-get update
+
+sudo apt-get install -y \
+    swig \
+    build-essential \
+    python3-dev
+
 # --- Step 5: Install all required Python dependencies ---
 echo "[5/8] Installing Python dependencies..."
+
 pip3 install --break-system-packages \
     pyinstaller \
     RPi.GPIO \
@@ -57,7 +75,7 @@ pip3 install --break-system-packages \
     python-can \
     can-isotp \
     udsoncan \
-    || pip3 install \
+|| pip3 install \
     pyinstaller \
     RPi.GPIO \
     adafruit-circuitpython-ssd1306 \
@@ -83,7 +101,7 @@ pyinstaller \
     --onefile \
     --clean \
     --name "$APP_NAME" \
-     --collect-all adafruit_platformdetect \
+    --collect-all adafruit_platformdetect \
     --collect-all adafruit_blinka \
     --collect-all digitalio \
     --collect-all busio \
@@ -124,9 +142,9 @@ pyinstaller \
     --hidden-import drivers.can_logger \
     --hidden-import drivers.report_generator \
     --hidden-import drivers.git_manager \
+    --hidden-import drivers.initialize_interfaces \
+    --hidden-import drivers.ssh_setup \
     main.py
-
-
 
 mkdir -p "$OUTPUT_DIR/output"
 mkdir -p "$OUTPUT_DIR/supportfiles"
